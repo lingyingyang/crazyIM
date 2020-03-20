@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @ChannelHandler.Sharable
-@Service("LoginResponceHandler")
-public class LoginResponceHandler extends ChannelInboundHandlerAdapter {
+@Service("LoginResponseHandler")
+public class LoginResponseHandler extends ChannelInboundHandlerAdapter {
     /**
      * 业务逻辑处理
      */
@@ -22,7 +22,7 @@ public class LoginResponceHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg)
             throws Exception {
         //判断消息实例
-        if (null == msg || !(msg instanceof ProtoMsg.Message)) {
+        if (!(msg instanceof ProtoMsg.Message)) {
             super.channelRead(ctx, msg);
             return;
         }
@@ -55,7 +55,5 @@ public class LoginResponceHandler extends ChannelInboundHandlerAdapter {
             //在编码器后面，动态插入心跳处理器
             p.addAfter("encoder", "heartbeat", new HeartBeatClientHandler());
         }
-
     }
-
 }

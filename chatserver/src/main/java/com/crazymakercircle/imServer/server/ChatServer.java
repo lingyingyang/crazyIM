@@ -3,9 +3,9 @@ package com.crazymakercircle.imServer.server;
 import com.crazymakercircle.im.common.codec.ProtobufDecoder;
 import com.crazymakercircle.im.common.codec.ProtobufEncoder;
 import com.crazymakercircle.imServer.handler.ChatRedirectHandler;
-import com.crazymakercircle.imServer.handler.ServerExceptionHandler;
 import com.crazymakercircle.imServer.handler.HeartBeatServerHandler;
 import com.crazymakercircle.imServer.handler.LoginRequestHandler;
+import com.crazymakercircle.imServer.handler.ServerExceptionHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -31,14 +31,11 @@ public class ChatServer {
     @Value("${server.port}")
     private int port;
     // 通过nio方式来接收连接和处理连接
-    private EventLoopGroup bg =
-            new NioEventLoopGroup();
-    private EventLoopGroup wg =
-            new NioEventLoopGroup();
-
+    private EventLoopGroup bossGroup = new NioEventLoopGroup();
+    private EventLoopGroup workerGroup = new NioEventLoopGroup();
     // 启动引导器
-    private ServerBootstrap b =
-            new ServerBootstrap();
+    private ServerBootstrap bootstrap = new ServerBootstrap();
+
     @Autowired
     private LoginRequestHandler loginRequestHandler;
 
@@ -49,52 +46,46 @@ public class ChatServer {
     private ChatRedirectHandler chatRedirectHandler;
 
     public void run() {
-        try {   //1 设置reactor 线程
-            b.group(bg, wg);
+        try {
+            //1 设置reactor 线程
+            bootstrap.group(bossGroup, workerGroup);
             //2 设置nio类型的channel
-            b.channel(NioServerSocketChannel.class);
+            bootstrap.channel(NioServerSocketChannel.class);
             //3 设置监听端口
-            b.localAddress(new InetSocketAddress(port));
+            bootstrap.localAddress(new InetSocketAddress(port));
             //4 设置通道选项
-            b.option(ChannelOption.SO_KEEPALIVE, true);
-            b.option(ChannelOption.ALLOCATOR,
-                    PooledByteBufAllocator.DEFAULT);
-
+            bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+            bootstrap.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
             //5 装配流水线
-            b.childHandler(new ChannelInitializer<SocketChannel>() {
+            bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
                 //有连接到达时会创建一个channel
-                protected void initChannel(SocketChannel ch) throws Exception {
+                protected void initChannel(SocketChannel channel) throws Exception {
                     // 管理pipeline中的Handler
-                    ch.pipeline().addLast(new ProtobufDecoder());
-                    ch.pipeline().addLast(new ProtobufEncoder());
-                    ch.pipeline().addLast(new HeartBeatServerHandler());
+                    channel.pipeline().addLast(new ProtobufDecoder());
+                    channel.pipeline().addLast(new ProtobufEncoder());
+                    channel.pipeline().addLast(new HeartBeatServerHandler());
                     // 在流水线中添加handler来处理登录,登录后删除
-                    ch.pipeline().addLast(loginRequestHandler);
-                    ch.pipeline().addLast(chatRedirectHandler);
-                    ch.pipeline().addLast(serverExceptionHandler);
+                    channel.pipeline().addLast(loginRequestHandler);
+                    channel.pipeline().addLast(chatRedirectHandler);
+                    channel.pipeline().addLast(serverExceptionHandler);
                 }
             });
             // 6 开始绑定server
             // 通过调用sync同步方法阻塞直到绑定成功
-
-            ChannelFuture channelFuture = b.bind().sync();
-            log.info(
-                    "疯狂创客圈 CrazyIM 服务启动, 端口 " +
-                            channelFuture.channel().localAddress());
+            ChannelFuture channelFuture = bootstrap.bind().sync();
+            log.info("疯狂创客圈 CrazyIM 服务启动, 端口 " +
+                    channelFuture.channel().localAddress());
             // 7 监听通道关闭事件
             // 应用程序会一直等待，直到channel关闭
-            ChannelFuture closeFuture =
-                    channelFuture.channel().closeFuture();
+            ChannelFuture closeFuture = channelFuture.channel().closeFuture();
             closeFuture.sync();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             // 8 优雅关闭EventLoopGroup，
             // 释放掉所有资源包括创建的线程
-            wg.shutdownGracefully();
-            bg.shutdownGracefully();
+            workerGroup.shutdownGracefully();
+            bossGroup.shutdownGracefully();
         }
-
     }
-
 }

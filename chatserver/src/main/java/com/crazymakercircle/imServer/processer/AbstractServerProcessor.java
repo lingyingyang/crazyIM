@@ -3,7 +3,7 @@ package com.crazymakercircle.imServer.processer;
 import com.crazymakercircle.imServer.server.ServerSession;
 import io.netty.channel.Channel;
 
-public abstract class AbstractServerProcesser implements ServerProcesser {
+public abstract class AbstractServerProcessor implements ServerProcessor {
     protected String getKey(Channel ch) {
 
         return ch.attr(ServerSession.KEY_USER_ID).get();

@@ -19,14 +19,11 @@ import java.util.UUID;
 @Data
 @Slf4j
 public class ServerSession {
-
-
     public static final AttributeKey<String> KEY_USER_ID =
             AttributeKey.valueOf("key_user_id");
 
     public static final AttributeKey<ServerSession> SESSION_KEY =
             AttributeKey.valueOf("SESSION_KEY");
-
 
     /**
      * 用户实现服务端会话管理的核心
@@ -45,7 +42,7 @@ public class ServerSession {
     /**
      * session中存储的session 变量属性值
      */
-    private Map<String, Object> map = new HashMap<String, Object>();
+    private Map<String, Object> map = new HashMap<>();
 
     public ServerSession(Channel channel) {
         this.channel = channel;
@@ -65,7 +62,7 @@ public class ServerSession {
 
         if (null != session && session.isValid()) {
             session.close();
-            SessionMap.inst().removeSession(session.getSessionId());
+            SessionMap.instance().removeSession(session.getSessionId());
         }
     }
 
@@ -73,14 +70,14 @@ public class ServerSession {
     public ServerSession bind() {
         log.info(" ServerSession 绑定会话 " + channel.remoteAddress());
         channel.attr(ServerSession.SESSION_KEY).set(this);
-        SessionMap.inst().addSession(getSessionId(), this);
+        SessionMap.instance().addSession(getSessionId(), this);
         isLogin = true;
         return this;
     }
 
     public ServerSession unbind() {
         isLogin = false;
-        SessionMap.inst().removeSession(getSessionId());
+        SessionMap.instance().removeSession(getSessionId());
         this.close();
         return this;
     }
@@ -105,7 +102,7 @@ public class ServerSession {
 
 
     public boolean isValid() {
-        return getUser() != null ? true : false;
+        return getUser() != null;
     }
 
     //写Protobuf数据帧
@@ -116,16 +113,12 @@ public class ServerSession {
     //关闭连接
     public synchronized void close() {
         ChannelFuture future = channel.close();
-        future.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                if (!future.isSuccess()) {
-                    log.error("CHANNEL_CLOSED error ");
-                }
+        future.addListener((ChannelFutureListener) futureListener -> {
+            if (!futureListener.isSuccess()) {
+                log.error("CHANNEL_CLOSED error ");
             }
         });
     }
-
 
     public User getUser() {
         return user;
@@ -135,6 +128,4 @@ public class ServerSession {
         this.user = user;
         user.setSessionId(sessionId);
     }
-
-
 }

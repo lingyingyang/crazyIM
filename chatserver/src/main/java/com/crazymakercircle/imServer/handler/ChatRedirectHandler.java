@@ -1,8 +1,8 @@
 package com.crazymakercircle.imServer.handler;
 
 import com.crazymakercircle.cocurrent.FutureTaskScheduler;
-import com.crazymakercircle.im.common.bean.msg.ProtoMsg;
-import com.crazymakercircle.imServer.processer.ChatRedirectProcesser;
+import com.crazymakercircle.im.common.bean.msg.ProtoMsg.Message;
+import com.crazymakercircle.imServer.processer.ChatRedirectProcessor;
 import com.crazymakercircle.imServer.server.ServerSession;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -11,13 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static com.crazymakercircle.im.common.bean.msg.ProtoMsg.HeadType;
+
 @Slf4j
 @Service("ChatRedirectHandler")
 @ChannelHandler.Sharable
 public class ChatRedirectHandler extends ChannelInboundHandlerAdapter {
 
     @Autowired
-    ChatRedirectProcesser chatRedirectProcesser;
+    ChatRedirectProcessor chatRedirectProcessor;
 
     /**
      * 收到消息
@@ -25,15 +27,15 @@ public class ChatRedirectHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg)
             throws Exception {
         //判断消息实例
-        if (null == msg || !(msg instanceof ProtoMsg.Message)) {
+        if (!(msg instanceof Message)) {
             super.channelRead(ctx, msg);
             return;
         }
 
         //判断消息类型
-        ProtoMsg.Message pkg = (ProtoMsg.Message) msg;
-        ProtoMsg.HeadType headType = ((ProtoMsg.Message) msg).getType();
-        if (!headType.equals(chatRedirectProcesser.type())) {
+        Message message = (Message) msg;
+        HeadType headType = message.getType();
+        if (!headType.equals(chatRedirectProcessor.type())) {
             super.channelRead(ctx, msg);
             return;
         }
@@ -47,11 +49,6 @@ public class ChatRedirectHandler extends ChannelInboundHandlerAdapter {
 
         //异步处理IM消息转发的逻辑
         FutureTaskScheduler.add(() ->
-        {
-            chatRedirectProcesser.action(session, pkg);
-        });
-
-
+                chatRedirectProcessor.action(session, message));
     }
-
 }

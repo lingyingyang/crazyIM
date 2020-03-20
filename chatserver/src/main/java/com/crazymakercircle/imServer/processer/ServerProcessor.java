@@ -7,7 +7,7 @@ import com.crazymakercircle.imServer.server.ServerSession;
 /**
  * 操作类
  */
-public interface ServerProcesser {
+public interface ServerProcessor {
 
     ProtoMsg.HeadType type();
 

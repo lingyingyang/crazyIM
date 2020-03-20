@@ -11,8 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Slf4j
-@Service("LoginProcesser")
-public class LoginProcesser extends AbstractServerProcesser {
+@Service("LoginProcessor")
+public class LoginProcessor extends AbstractServerProcessor {
     @Autowired
     LoginResponceBuilder loginResponceBuilder;
 
@@ -33,11 +33,11 @@ public class LoginProcesser extends AbstractServerProcesser {
         //检查用户
         boolean isValidUser = checkUser(user);
         if (!isValidUser) {
-            ProtoInstant.ResultCodeEnum resultcode =
+            ProtoInstant.ResultCodeEnum resultCode =
                     ProtoInstant.ResultCodeEnum.NO_TOKEN;
             //构造登录失败的报文
             ProtoMsg.Message response =
-                    loginResponceBuilder.loginResponce(resultcode, seqNo, "-1");
+                    loginResponceBuilder.loginResponce(resultCode, seqNo, "-1");
             //发送登录失败的报文
             session.writeAndFlush(response);
             return false;
@@ -48,12 +48,12 @@ public class LoginProcesser extends AbstractServerProcesser {
         session.bind();
 
         //登录成功
-        ProtoInstant.ResultCodeEnum resultcode =
+        ProtoInstant.ResultCodeEnum resultCode =
                 ProtoInstant.ResultCodeEnum.SUCCESS;
         //构造登录成功的报文
         ProtoMsg.Message response =
                 loginResponceBuilder.loginResponce(
-                        resultcode, seqNo, session.getSessionId());
+                        resultCode, seqNo, session.getSessionId());
         //发送登录成功的报文
         session.writeAndFlush(response);
         return true;
@@ -61,14 +61,13 @@ public class LoginProcesser extends AbstractServerProcesser {
 
     private boolean checkUser(User user) {
 
-        if (SessionMap.inst().hasLogin(user)) {
+        if (SessionMap.instance().hasLogin(user)) {
             return false;
         }
 
         //校验用户,比较耗时的操作,需要100 ms以上的时间
-        //方法1：调用远程用户restfull 校验服务
+        //方法1：调用远程用户restful校验服务
         //方法2：调用数据库接口校验
-
         return true;
 
     }
